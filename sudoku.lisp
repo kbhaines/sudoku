@@ -71,9 +71,8 @@
                  (c (second with)) 
                  (val (first(third with)))) 
              (set-cell r c val))))
-        (mapcar #'fill-it simples))))
-
-(defun iterate() (progn (fill-simple-possibles) (print-grid)))
+        (mapcar #'fill-it simples)
+        (return-from fill-simple-possibles (> (length simples) 0)))))
 
 (defun set-row(n lst)
   (setf (nth n *grid*) lst))
@@ -126,11 +125,16 @@
 
 (defparameter *grid-stack* () )
 
+(defun iterate() 
+  (return-from iterate (fill-simple-possibles))
+  (print-grid))
+
 (defun solve()
   (loop
-    (iterate)
-    (when (is-finished) (return t))
-    (when (is-blocked) (progn (print "blocked!") (return nil)))))
+    (defvar cont)
+    (setf cont (iterate))
+    (when (is-finished) (progn (print-grid) (return t)))
+    (when (not cont) (progn (print "blocked!") (return nil)))))
 
 (defparameter *board1*
   '((- - -  - 1 -  7 3 -)
