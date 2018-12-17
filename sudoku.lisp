@@ -47,17 +47,31 @@
         (t ())))
 
 (defun report-possibles()
-  (loop for r from 0 below *dim* collect 
-        (loop for c from 0 below *dim* collect
-              (length (possibles r c)))))
+  (apply #'append 
+    (loop for r from 0 below *dim* collect 
+          (loop for c from 0 below *dim* collect
+                (list r c (possibles r c))))))
+
+(defun multiple-possibilityp (x)
+  (let ((len (length (third x))))
+    (and (not(eq nil (third x))) ( > len 1))))
+
+(defun single-possibilityp(x) 
+  (let ((len (length (third x))))
+    (eq 1 len)))
+
+(defun sort-possibles(ps)
+  (sort ps (lambda (x y)(< (length(third x)) (length(third y))))))
 
 (defun fill-simple-possibles()
-  (loop for r from 0 below *dim* collect 
-        (loop for c from 0 below *dim* do 
-              (let ((pos (possibles r c)))
-                (cond ((eq 1 (length pos))
-                       (set-cell r c (first pos)))
-                      (t ()))))))
+    (let ((simples (remove-if-not #'single-possibilityp (report-possibles))))
+      (flet 
+        ((fill-it(with) 
+           (let ((r (first with)) 
+                 (c (second with)) 
+                 (val (first(third with)))) 
+             (set-cell r c val))))
+        (mapcar #'fill-it simples))))
 
 (defun iterate() (progn (fill-simple-possibles) (print-grid)))
 
@@ -72,8 +86,17 @@
                    (setf row (1+ row)))))
     (mapcar #'setc lst))))
 
+(defun get-search-space() 
+  (flet ((srt (x y) (< (second x) (second y)))
+         (fltr (x) (eq 0 (second x))))
+    (remove-if #'fltr (sort (mapcar #'list  (range 0 80) (apply #'append (report-possibles))) #'srt))))
+
+(defun cell->rc(cell) 
+  (list (truncate (/ cell *dim*)) (mod cell *dim*)))
+
 (defun set-cell(r c val)
   (setf (nth c (nth r *grid* )) val))
+
 
 (defun valid-board() 
   (flet ((all-rows-valid() 
@@ -98,7 +121,10 @@
   (not (find '- (apply #'append *grid*))))
 
 (defun is-blocked()
+  ; all = 0
   (not (find '1 (apply #'append (report-possibles)))))
+
+(defparameter *grid-stack* () )
 
 (defun solve()
   (loop
@@ -132,7 +158,7 @@
     (6 - -  5 - -  - 9 -)
     (3 - -  1 4 2  - - -)))
 
-(setf *grid* *board2*)
+(setf *grid* *board1*)
 
 (print-grid)
 
