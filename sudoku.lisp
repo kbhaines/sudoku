@@ -47,10 +47,11 @@
         (t ())))
 
 (defun report-possibles()
-  (apply #'append 
-    (loop for r from 0 below *dim* collect 
-          (loop for c from 0 below *dim* collect
-                (list r c (possibles r c))))))
+  (flet ((np (x) (eq nil (third x))))
+    (remove-if #'np (apply #'append 
+      (loop for r from 0 below *dim* collect 
+            (loop for c from 0 below *dim* collect
+                  (list r c (possibles r c))))))))
 
 (defun multiple-possibilityp (x)
   (let ((len (length (third x))))
@@ -118,10 +119,6 @@
 
 (defun is-finished() 
   (not (find '- (apply #'append *grid*))))
-
-(defun is-blocked()
-  ; all = 0
-  (not (find '1 (apply #'append (report-possibles)))))
 
 (defparameter *grid-stack* () )
 
