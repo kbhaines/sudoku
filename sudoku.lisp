@@ -72,6 +72,7 @@
                  (c (second with)) 
                  (val (first(third with)))) 
              (set-cell r c val))))
+        (print simples)
         (mapcar #'fill-it simples)
         (return-from fill-simple-possibles (> (length simples) 0)))))
 
@@ -120,6 +121,7 @@
 (defun is-finished() 
   (not (find '- (apply #'append *grid*))))
 
+; deep copy: copy-tree
 (defparameter *grid-stack* () )
 
 (defun iterate() 
@@ -133,6 +135,35 @@
     (when (is-finished) (progn (print-grid) (return t)))
     (when (not cont) (progn (print "blocked!") (return nil)))))
 
+(defun deep-solve()
+  (loop
+    (loop until (not(fill-simple-possibles)))
+    (when (not(valid-board)) (print "invalid path found")(return-from deep-solve nil))
+    (when (is-finished) (print-grid)(return-from deep-solve t))
+    (mapcar #'go-deep (sort-possibles(report-possibles)))
+    (when (not(is-finished)) (return-from deep-solve nil))
+    (return t)))
+
+(defparameter *level* 0)
+
+(defun go-deep(cell)
+    (incf *level*)
+    (prin1 "Going deeper..")
+    (prin1 *level*)
+    ;(print cell) (print-grid) (read)
+    (flet ((try-possibles (v)
+                (push (copy-tree *grid*) *grid-stack*)
+                (set-cell (first cell) (second cell) v)
+                (when (not(valid-board)) (print "bahhh!!")(break))
+                (when (deep-solve) (print "solved!")(break)(setf *grid* (pop *grid-stack*))(return-from go-deep t))
+                (unless (length *grid-stack*)(print "out of stack")(break))
+                (setf *grid* (pop *grid-stack*))))
+
+        (mapcar #'try-possibles (third cell))
+        (decf *level*)
+        (return-from go-deep nil)))
+
+
 (defparameter *board1*
   '((- - -  - 1 -  7 3 -)
     (8 - -  - - 9  - 1 2)
@@ -144,7 +175,7 @@
     
     (- - -  6 - -  3 7 -)
     (7 5 -  - - 4  - - -)
-    (- 2 -  - - -  5 8 4)))
+    (- 2 -  - - -  5 - 4)))
 
 (defparameter *board2*
   '((- - 5  - 2 3  4 - -)
