@@ -1,5 +1,58 @@
 (defparameter *dim* 9)
 
+(defparameter *level* 0)
+
+(defparameter *grid* 
+    (mapcar (lambda(_)(make-list *dim* :initial-element '- )) (range 1 *dim*)))
+
+; deep copy: copy-tree
+(defparameter *grid-stack* () )
+
+
+(defparameter *board1*
+  '((- - -  - 1 -  7 3 -)
+    (8 - -  - - 9  - 1 2)
+    (1 - 5  - 2 -  8 4 -)
+
+    (5 7 9  - - -  1 - -)
+    (- - 8  3 - -  - - -)
+    (- 4 -  - - -  9 - -)
+    
+    (- - -  6 - -  3 7 -)
+    (7 5 -  - - 4  - - -)
+    (- 2 -  - - -  5 8 4)))
+
+(defparameter *board2*
+  '((- - 5  - 2 3  4 - -)
+    (2 3 -  4 - -  - - -)
+    (- 1 -  - - 5  - 6 -)
+    
+    (- - -  - - 9  - - 8)
+    (9 2 -  - - -  - - 1)
+    (- 7 -  - 8 -  - - -)
+
+    (5 - -  - - -  3 4 -)
+    (6 - -  5 - -  - 9 -)
+    (3 - -  1 4 2  - - -)))
+
+(defparameter *board3*
+  '((- 9 -  - - 3  - 8 -)
+    (- 6 -  - 5 -  - - -)
+    (5 - -  - - -  - - 6)
+
+    (- - -  - - -  7 4 1)
+    (- - -  - 2 4  - - -)
+    (- - 3  - - 5  - - -)
+
+    (- - 5  - - -  8 - -)
+    (- - -  6 - 9  1 - 7)
+    (7 8 6  - 1 -  9 - -)
+    ))
+
+    (defun matrix-transpose (matrix)
+  (when matrix
+    (apply #'mapcar #'list matrix)))
+
 (defun range(low high) (loop for n from low below (1+ high) collect n))
 
 (defun take(n lst) (subseq lst 0 n ))
@@ -14,9 +67,6 @@
                           (setf idx (1+ idx)) 
                           (funcall f idx e))) lst)))
 
-(defparameter *grid* 
-    (mapcar (lambda(_)(make-list *dim* :initial-element '- )) (range 1 *dim*)))
-
 (defun row(n) (nth n *grid*))
 
 (defun col(n) 
@@ -24,6 +74,11 @@
     (mapcar #'c *grid*)))
 
 (defun cell(r c) (nth c (row r)))
+
+(defun row-of-cell(cell) (first cell))
+(defun col-of-cell(cell) (second cell))
+(defun square-of-cell(cell) (9group-ref (first cell) (second cell)))
+(defun cell-possibles (cell) (third cell))
 
 (defun 9group-ref(r c) 
   (let ((cblock (truncate (/ c 3)))
@@ -64,15 +119,15 @@
 (defun sort-possibles(ps)
   (sort ps (lambda (x y)(< (length(third x)) (length(third y))))))
 
-(defun fill-simple-possibles()
-    (let ((simples (remove-if-not #'single-possibilityp (report-possibles))))
+(defun fill-simple-possibles(possibles)
+    (let ((simples (remove-if-not #'single-possibilityp possibles)))
       (flet 
         ((fill-it(with) 
            (let ((r (first with)) 
                  (c (second with)) 
                  (val (first(third with)))) 
              (set-cell r c val))))
-        (print simples)
+        ;(print simples)
         (mapcar #'fill-it simples)
         (return-from fill-simple-possibles (> (length simples) 0)))))
 
@@ -121,11 +176,9 @@
 (defun is-finished() 
   (not (find '- (apply #'append *grid*))))
 
-; deep copy: copy-tree
-(defparameter *grid-stack* () )
 
 (defun iterate() 
-  (return-from iterate (fill-simple-possibles))
+  (return-from iterate (fill-simple-possibles(report-possibles)))
   (print-grid))
 
 (defun solve()
@@ -137,20 +190,17 @@
 
 (defun deep-solve()
   (loop
-    (loop until (not(fill-simple-possibles)))
-    (when (not(valid-board)) (print "invalid path found")(return-from deep-solve nil))
+    (loop until (not(fill-simple-possibles(report-possibles))))
+    (when (not(valid-board)) (return-from deep-solve nil))
     (when (is-finished) (print-grid)(return-from deep-solve t))
     (mapcar #'go-deep (sort-possibles(report-possibles)))
     (when (not(is-finished)) (return-from deep-solve nil))
     (return t)))
 
-(defparameter *level* 0)
-
 (defun go-deep(cell)
     (incf *level*)
-    (prin1 "Going deeper..")
-    (prin1 *level*)
-    ;(print cell) (print-grid) (read)
+    (format t "Going to level ~d  ~C" *level* #\return)
+    (print cell) (print-grid) (read)
     (flet ((try-possibles (v)
                 (push (copy-tree *grid*) *grid-stack*)
                 (set-cell (first cell) (second cell) v)
@@ -164,33 +214,52 @@
         (return-from go-deep nil)))
 
 
-(defparameter *board1*
-  '((- - -  - 1 -  7 3 -)
-    (8 - -  - - 9  - 1 2)
-    (1 - 5  - 2 -  8 4 -)
+(setf *grid* *board3*)
 
-    (5 7 9  - - -  1 - -)
-    (- - 8  3 - -  - - -)
-    (- 4 -  - - -  9 - -)
-    
-    (- - -  6 - -  3 7 -)
-    (7 5 -  - - 4  - - -)
-    (- 2 -  - - -  5 - 4)))
+(defun main() 
+  (setf *grid* *board2*)
+  (print-grid)
+  (deep-solve))
 
-(defparameter *board2*
-  '((- - 5  - 2 3  4 - -)
-    (2 3 -  4 - -  - - -)
-    (- 1 -  - - 5  - 6 -)
-    
-    (- - -  - - 9  - - 8)
-    (9 2 -  - - -  - - 1)
-    (- 7 -  - 8 -  - - -)
+(defun make() 
+  (ext:saveinitmem "exec" :init-function 'main :executable t :norc t))
 
-    (5 - -  - - -  3 4 -)
-    (6 - -  5 - -  - 9 -)
-    (3 - -  1 4 2  - - -)))
+(defun row-needs(r) 
+    (remove-duplicates(apply #'append (mapcar (lambda(c)(third c)) (poss-row r)))))
 
-(setf *grid* *board1*)
+(defun row-missing-requirements(r)
+    (set-difference(set-difference(range 1 9)(row r))(remove-duplicates(apply #'append (mapcar (lambda(c)(third c)) (poss-row r))))))
 
-(print-grid)
 
+(defun filter-cell(pred possibles)
+  (remove-if-not pred possibles))
+
+(defun row-group(r possibles)
+  (filter-cell (lambda(x) (eq r (first x))) possibles))
+
+(defun col-group(c possibles) 
+  (filter-cell (lambda(x) (eq c (second x))) possibles))
+
+(defun potential-twins(poss)
+  (let ((twins (filter-cell (lambda(x)(eq 2 (length(third x)))) poss)))
+    (remove-if (lambda(x)(< (count (cell-possibles x) (mapcar #'cell-possibles twins) :test 'equal) 2)) twins)))
+
+(defun poss-row(r) 
+  (remove-if-not (lambda(x) (eq r (first x)))(report-possibles)))
+
+(defun poss-col(r) 
+  (remove-if-not (lambda(x) (eq r (second x)))(report-possibles)))
+
+(defun find-twins(group)
+ (remove-if-not (lambda(x)(eq 2 (length x))) (remove nil (maplist (lambda(x)(find (third(car x)) (mapcar #'third (cdr x)) :test 'equal)) group))))
+
+(defun reduce-twins(twin group)
+  (if (< (count twin (mapcar #'cell-possibles group) :test 'equal) 2)
+    (return-from reduce-twins nil))
+  (fill-simple-possibles (mapcar (lambda(x)(list (row-of-cell x)(col-of-cell x)(set-difference (cell-possibles x) twin))) group)))
+
+
+(defun apply-twins(twins possibles) 
+  (find t (apply #'append (list 
+    (mapcar (lambda(x)(reduce-twins (cell-possibles x) (row-group (row-of-cell x) possibles))) twins)
+    (mapcar (lambda(x)(reduce-twins (cell-possibles x) (col-group (col-of-cell x) possibles))) twins)))))
