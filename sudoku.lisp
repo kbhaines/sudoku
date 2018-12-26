@@ -49,6 +49,20 @@
     (7 8 6  - 1 -  9 - -)
     ))
 
+(defparameter *board4*
+  '((- - -  2 - -  - - -)
+    (- 7 6  - - -  - - 4)
+    (- - -  1 - 8  - 3 -)
+
+    (9 - -  - - -  8 - -)
+    (- - -  - - -  2 6 5)
+    (1 - 3  - - -  7 - -)
+
+    (- - -  3 - -  - 9 6)
+    (- - -  7 - 4  - - -)
+    (2 5 -  - - -  - - -)
+    ))
+
     (defun matrix-transpose (matrix)
   (when matrix
     (apply #'mapcar #'list matrix)))
@@ -171,7 +185,7 @@
 (defun print-grid () 
   (progn
     (loop for r from 0 below *dim* do (print (row r)))
-    (print (valid-board))))
+    (if (not(valid-board)) (prin1 "BOARD FOOKED!"))))
 
 (defun is-finished() 
   (not (find '- (apply #'append *grid*))))
@@ -214,7 +228,7 @@
         (return-from go-deep nil)))
 
 
-(setf *grid* *board3*)
+(setf *grid* *board4*)
 
 (defun main() 
   (setf *grid* *board2*)
@@ -263,3 +277,15 @@
   (find t (apply #'append (list 
     (mapcar (lambda(x)(reduce-twins (cell-possibles x) (row-group (row-of-cell x) possibles))) twins)
     (mapcar (lambda(x)(reduce-twins (cell-possibles x) (col-group (col-of-cell x) possibles))) twins)))))
+
+(defun non-deep()
+  (loop until (not(fill-simple-possibles(report-possibles))))
+  (let ((twins (potential-twins (report-possibles))))
+    (cond ((and (is-finished) (not twins))
+           (print-grid)
+           (return-from non-deep 'Done ))
+
+          ((not twins)
+           (return-from non-deep 'Blocked)))
+    (loop until (not(apply-twins twins (report-possibles))))
+    (if (not(is-finished)) (non-deep) (print-grid))))
