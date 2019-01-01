@@ -96,6 +96,8 @@
 (defun col-of-cell(cell) (second cell))
 (defun square-of-cell(cell) (9group-ref (first cell) (second cell)))
 (defun cell-possibles (cell) (third cell))
+(defun make-cell(row col possibles)
+  (list row col possibles))
 
 (defun 9group-ref(r c) 
   (let ((cblock (truncate (/ c 3)))
@@ -311,4 +313,21 @@
     (loop for i in sgls
      collect (let ((cell (find-if (lambda(x)(member i (cell-possibles x))) grouping)))
                (list (row-of-cell cell) (col-of-cell cell) (list i))))))
+
+
+(defun hidden-pairs(freqs grouping)
+  (let ((perms (permutations-pair(mapcar #'first (remove-if (lambda(x)(eq 1 (second x))) freqs)))))
+    perms))
+
+(defun find-pair-cells(pair grouping) 
+  (let ((cs (remove-if-not (lambda(x)(subsetp pair (cell-possibles x))) grouping)))
+    (if (eq 2 (length cs)) cs nil)))
+
+
+(defun reduce-pairs-from-grouping(pair pair-cells grouping)
+    (loop for c in grouping 
+          collect 
+          (let ((row (row-of-cell c))
+                (col (col-of-cell c)))
+            (if(member c pair-cells) (make-cell row col pair) (make-cell row col (set-difference (cell-possibles c) pair))))))
 
