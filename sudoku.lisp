@@ -2,6 +2,8 @@
 
 (defparameter *level* 0)
 
+(defun range(low high) (loop for n from low below (1+ high) collect n))
+
 (defparameter *grid* 
     (mapcar (lambda(_)(make-list *dim* :initial-element '- )) (range 1 *dim*)))
 
@@ -35,6 +37,7 @@
     (6 - -  5 - -  - 9 -)
     (3 - -  1 4 2  - - -)))
 
+; pg 74 bbos2
 (defparameter *board3*
   '((- 9 -  - - 3  - 8 -)
     (- 6 -  - 5 -  - - -)
@@ -49,6 +52,7 @@
     (7 8 6  - 1 -  9 - -)
     ))
 
+; pg 75 bbos2
 (defparameter *board4*
   '((- - -  2 - -  - - -)
     (- 7 6  - - -  - - 4)
@@ -59,7 +63,7 @@
     (1 - 3  - - -  7 - -)
 
     (- - -  3 - -  - 9 6)
-    (- - -  7 - 4  - - -)
+    (- - -  7 4 -  - - -)
     (2 5 -  - - -  - - -)
     ))
 
@@ -67,7 +71,6 @@
   (when matrix
     (apply #'mapcar #'list matrix)))
 
-(defun range(low high) (loop for n from low below (1+ high) collect n))
 
 (defun take(n lst) (subseq lst 0 n ))
 
@@ -254,6 +257,9 @@
 (defun col-group(c possibles) 
   (filter-cell (lambda(x) (eq c (second x))) possibles))
 
+(defun square-group(s possibles)
+  (filter-cell (lambda(x) (eq s (square-of-cell x))) possibles))
+
 (defun potential-twins(poss)
   (let ((twins (filter-cell (lambda(x)(eq 2 (length(third x)))) poss)))
     (remove-if (lambda(x)(< (count (cell-possibles x) (mapcar #'cell-possibles twins) :test 'equal) 2)) twins)))
@@ -275,6 +281,7 @@
 
 (defun apply-twins(twins possibles) 
   (find t (apply #'append (list 
+    (mapcar (lambda(x)(reduce-twins (cell-possibles x) (square-group (square-of-cell x) possibles))) twins)
     (mapcar (lambda(x)(reduce-twins (cell-possibles x) (row-group (row-of-cell x) possibles))) twins)
     (mapcar (lambda(x)(reduce-twins (cell-possibles x) (col-group (col-of-cell x) possibles))) twins)))))
 
@@ -289,3 +296,19 @@
            (return-from non-deep 'Blocked)))
     (loop until (not(apply-twins twins (report-possibles))))
     (if (not(is-finished)) (non-deep) (print-grid))))
+
+
+(defun permutations-pair(lst)
+  (apply #'append 
+         (maplist (lambda(x)(mapcar (lambda(y)(list (first x) y)) (cdr x))) lst)))
+
+(defun find-frequencies(grouping)
+  (let ((freqs (sort (apply #'append (mapcar (lambda(x)(cell-possibles x)) (copy-tree grouping))) '< )))
+        (mapcar (lambda(x)(list x (count x freqs))) (remove-duplicates freqs))))
+
+(defun hidden-singles(freqs grouping)
+  (let ((sgls (mapcar #'first (remove-if-not (lambda(x)(eq 1 (second x))) freqs))))
+    (loop for i in sgls
+     collect (let ((cell (find-if (lambda(x)(member i (cell-possibles x))) grouping)))
+               (list (row-of-cell cell) (col-of-cell cell) (list i))))))
+
