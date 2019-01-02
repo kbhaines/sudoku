@@ -67,6 +67,52 @@
     (2 5 -  - - -  - - -)
     ))
 
+; pg 77 bbos2
+(defparameter *board5*
+  '((- - -  - - -  - - -)
+    (- - 4  - - -  8 5 -)
+    (8 2 -  3 1 -  - - -)
+
+    (3 - -  7 9 -  2 - -)
+    (4 - 5  - - 3  9 8 -)
+    (- - -  - - 8  - - 7)
+
+    (- 8 2  - - 4  - 6 -)
+    (5 1 -  9 - 2  - - -)
+    (- - -  - 5 -  1 - -)
+    ))
+
+; pg 105 bbos2
+(defparameter *board6*
+  '((1 - 6  9 - 5  - - -)
+    (- - -  - 4 -  - - -)
+    (- - -  2 3 -  6 - 5)
+
+    (- 6 1  5 - -  - 9 -)
+    (5 - -  - - -  7 - -)
+    (9 - -  - - -  5 - 4)
+
+    (- - 8  4 - 9  - - -)
+    (- 7 9  - - -  - 1 -)
+    (- 4 -  - - -  - 8 3)
+    ))
+
+; pg 153 bbos2
+(defparameter *board7*
+  '((- - 8  - - 3  - - -)
+    (9 3 -  - - -  - - 1)
+    (- 7 -  2 - 6  - - 5)
+
+    (3 2 -  - - -  - 1 -)
+    (- - -  3 - -  - 2 -)
+    (- - -  - - -  - 4 9)
+
+    (- - -  7 9 -  - - 6)
+    (- - 9  - 6 8  - - -)
+    (5 - -  - - -  - - -)
+    ))
+
+
 (defun matrix-transpose (matrix)
   (when matrix
     (apply #'mapcar #'list matrix)))
@@ -370,3 +416,6 @@
           (return-from solve3 (solve3(possibles->grid ps)))))
 
   (print "BLOCKED!") ))
+
+(defun test-boards()
+  (mapcar #'solve3 (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* )))
