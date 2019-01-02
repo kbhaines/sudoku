@@ -112,6 +112,9 @@
           (subseq (row n) ci (+ 3 ci))))
     ))
 
+; lists possible values for cell at row r, col c.  Likely to be a superset of
+; actual possible values, as it doesn't analyse the cell's row/col/group in
+; depth.
 (defun possibles(r c) 
   (cond ((eq '- (cell r c))
       (let ((poss-row (set-difference (range 1 *dim*) (row r)))
@@ -122,7 +125,7 @@
 
 (defun report-possibles()
   (flet ((np (x) (eq nil (third x))))
-    (remove-if #'np (apply #'append 
+    (remove-if-not #'np (apply #'append 
       (loop for r from 0 below *dim* collect 
             (loop for c from 0 below *dim* collect
                   (list r c (possibles r c))))))))
@@ -308,26 +311,27 @@
   (let ((freqs (sort (apply #'append (mapcar (lambda(x)(cell-possibles x)) (copy-tree grouping))) '< )))
         (mapcar (lambda(x)(list x (count x freqs))) (remove-duplicates freqs))))
 
-(defun hidden-singles(freqs grouping)
-  (let ((sgls (mapcar #'first (remove-if-not (lambda(x)(eq 1 (second x))) freqs))))
+(defun hidden-singles(grouping)
+  (let* ((freqs (find-frequencies grouping))
+        (sgls (mapcar #'first (remove-if-not (lambda(x)(eq 1 (second x))) freqs))))
     (loop for i in sgls
      collect (let ((cell (find-if (lambda(x)(member i (cell-possibles x))) grouping)))
                (list (row-of-cell cell) (col-of-cell cell) (list i))))))
 
 
-(defun hidden-pairs(freqs grouping)
-  (let ((perms (permutations-pair(mapcar #'first (remove-if (lambda(x)(eq 1 (second x))) freqs)))))
-    perms))
+(defun hidden-pairs(group)
+  (let* ((frqs (find-frequencies group))
+         (perms (permutations-pair(mapcar #'first (remove-if (lambda(x)(not(eq 2 (second x)))) frqs)))))
+    (remove-if-not #'second (loop for p in perms collect (list p (find-pair-cells p group))))))
+
 
 (defun find-pair-cells(pair grouping) 
-  (let ((cs (remove-if-not (lambda(x)(subsetp pair (cell-possibles x))) grouping)))
-    (if (eq 2 (length cs)) cs nil)))
+  (let ((cs (remove-if-not (lambda(x)(intersection pair (cell-possibles x))) grouping)))
+    (if(eq 2 (length cs)) cs nil)))
 
 
-(defun reduce-pairs-from-grouping(pair pair-cells grouping)
-    (loop for c in grouping 
-          collect 
-          (let ((row (row-of-cell c))
-                (col (col-of-cell c)))
-            (if(member c pair-cells) (make-cell row col pair) (make-cell row col (set-difference (cell-possibles c) pair))))))
-
+(defun reduce-pairs-from-grouping(pair grouping)
+    (loop for c in grouping collect
+      (let ((row (row-of-cell c))
+            (col (col-of-cell c)))
+        (if(intersection pair (cell-possibles c)) (make-cell row col pair) c))))
