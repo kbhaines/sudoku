@@ -144,8 +144,7 @@
 (defun col-of-cell(cell) (second cell))
 (defun square-of-cell(cell) (9group-ref (first cell) (second cell)))
 (defun cell-possibles (cell) (third cell))
-(defun make-cell(row col possibles)
-  (list row col possibles))
+(defun make-cell(row col possibles) (list row col possibles))
 
 (defun 9group-ref(r c) 
   (let ((cblock (truncate (/ c 3)))
@@ -178,51 +177,12 @@
             (loop for c from 0 below *dim* collect
                   (list r c (possibles r c))))))))
 
-(defun multiple-possibilityp (x)
-  (let ((len (length (third x))))
-    (and (not(eq nil (third x))) ( > len 1))))
-
-(defun single-possibilityp(x) 
-  (let ((len (length (third x))))
-    (eq 1 len)))
-
-(defun sort-possibles(ps)
-  (sort ps (lambda (x y)(< (length(third x)) (length(third y))))))
-
-(defun fill-simple-possibles(possibles)
-    (let ((simples (remove-if-not #'single-possibilityp possibles)))
-      (flet 
-        ((fill-it(with) 
-           (let ((r (first with)) 
-                 (c (second with)) 
-                 (val (first(third with)))) 
-             (set-cell r c val))))
-        ;(print simples)
-        (mapcar #'fill-it simples)
-        (return-from fill-simple-possibles (> (length simples) 0)))))
-
-(defun set-row(n lst)
-  (setf (nth n *grid*) lst))
-
-(defun set-col(c lst)
-  (let ((row 0)) 
-    (flet ((setc (a) 
-                 (progn 
-                   (setf (nth c (nth row *grid*)) a)
-                   (setf row (1+ row)))))
-    (mapcar #'setc lst))))
-
-(defun get-search-space() 
-  (flet ((srt (x y) (< (second x) (second y)))
-         (fltr (x) (eq 0 (second x))))
-    (remove-if #'fltr (sort (mapcar #'list  (range 0 80) (apply #'append (report-possibles))) #'srt))))
 
 (defun cell->rc(cell) 
   (list (truncate (/ cell *dim*)) (mod cell *dim*)))
 
 (defun set-cell(r c val)
   (setf (nth c (nth r *grid* )) val))
-
 
 (defun valid-board() 
   (flet ((all-rows-valid() 
@@ -250,110 +210,15 @@
 (defun is-finished() 
   (not (find '- (apply #'append *grid*))))
 
-
-(defun iterate() 
-  (return-from iterate (fill-simple-possibles(report-possibles)))
-  (print-grid))
-
-(defun solve()
-  (loop
-    (defvar cont)
-    (setf cont (iterate))
-    (when (is-finished) (progn (print-grid) (return t)))
-    (when (not cont) (progn (print "blocked!") (return nil)))))
-
-(defun deep-solve()
-  (loop
-    (loop until (not(fill-simple-possibles(report-possibles))))
-    (when (not(valid-board)) (return-from deep-solve nil))
-    (when (is-finished) (print-grid)(return-from deep-solve t))
-    (mapcar #'go-deep (sort-possibles(report-possibles)))
-    (when (not(is-finished)) (return-from deep-solve nil))
-    (return t)))
-
-(defun go-deep(cell)
-    (incf *level*)
-    (format t "Going to level ~d  ~C" *level* #\return)
-    (print cell) (print-grid) (read)
-    (flet ((try-possibles (v)
-                (push (copy-tree *grid*) *grid-stack*)
-                (set-cell (first cell) (second cell) v)
-                (when (not(valid-board)) (print "bahhh!!")(break))
-                (when (deep-solve) (print "solved!")(break)(setf *grid* (pop *grid-stack*))(return-from go-deep t))
-                (unless (length *grid-stack*)(print "out of stack")(break))
-                (setf *grid* (pop *grid-stack*))))
-
-        (mapcar #'try-possibles (third cell))
-        (decf *level*)
-        (return-from go-deep nil)))
-
-
 (setf *grid* *board4*)
 
-(defun main() 
-  (setf *grid* *board2*)
-  (print-grid)
-  (deep-solve))
+(defun make() (ext:saveinitmem "exec" :init-function 'main :executable t :norc t))
 
-(defun make() 
-  (ext:saveinitmem "exec" :init-function 'main :executable t :norc t))
+(defun row-group(r possibles) (remove-if-not (lambda(x) (eq r (first x))) possibles))
 
-(defun row-needs(r) 
-    (remove-duplicates(apply #'append (mapcar (lambda(c)(third c)) (poss-row r)))))
+(defun col-group(c possibles) (remove-if-not (lambda(x) (eq c (second x))) possibles))
 
-(defun row-missing-requirements(r)
-    (set-difference(set-difference(range 1 9)(row r))(remove-duplicates(apply #'append (mapcar (lambda(c)(third c)) (poss-row r))))))
-
-
-(defun filter-cell(pred possibles)
-  (remove-if-not pred possibles))
-
-(defun row-group(r possibles)
-  (filter-cell (lambda(x) (eq r (first x))) possibles))
-
-(defun col-group(c possibles) 
-  (filter-cell (lambda(x) (eq c (second x))) possibles))
-
-(defun square-group(s possibles)
-  (filter-cell (lambda(x) (eq s (square-of-cell x))) possibles))
-
-(defun potential-twins(poss)
-  (let ((twins (filter-cell (lambda(x)(eq 2 (length(third x)))) poss)))
-    (remove-if (lambda(x)(< (count (cell-possibles x) (mapcar #'cell-possibles twins) :test 'equal) 2)) twins)))
-
-(defun poss-row(r) 
-  (remove-if-not (lambda(x) (eq r (first x)))(report-possibles)))
-
-(defun poss-col(r) 
-  (remove-if-not (lambda(x) (eq r (second x)))(report-possibles)))
-
-(defun find-twins(group)
- (remove-if-not (lambda(x)(eq 2 (length x))) (remove nil (maplist (lambda(x)(find (third(car x)) (mapcar #'third (cdr x)) :test 'equal)) group))))
-
-(defun reduce-twins(twin group)
-  (if (< (count twin (mapcar #'cell-possibles group) :test 'equal) 2)
-    (return-from reduce-twins nil))
-  (fill-simple-possibles (mapcar (lambda(x)(list (row-of-cell x)(col-of-cell x)(set-difference (cell-possibles x) twin))) group)))
-
-
-(defun apply-twins(twins possibles) 
-  (find t (apply #'append (list 
-    (mapcar (lambda(x)(reduce-twins (cell-possibles x) (square-group (square-of-cell x) possibles))) twins)
-    (mapcar (lambda(x)(reduce-twins (cell-possibles x) (row-group (row-of-cell x) possibles))) twins)
-    (mapcar (lambda(x)(reduce-twins (cell-possibles x) (col-group (col-of-cell x) possibles))) twins)))))
-
-(defun non-deep()
-  (loop until (not(fill-simple-possibles(report-possibles))))
-  (let ((twins (potential-twins (report-possibles))))
-    (cond ((and (is-finished) (not twins))
-           (print-grid)
-           (return-from non-deep 'Done ))
-
-          ((not twins)
-           (return-from non-deep 'Blocked)))
-    (loop until (not(apply-twins twins (report-possibles))))
-    (if (not(is-finished)) (non-deep) (print-grid))))
-
+(defun square-group(s possibles) (remove-if-not (lambda(x) (eq s (square-of-cell x))) possibles))
 
 (defun update-possible(cell possibles)
   (let ((cid (+ (col-of-cell cell) (* *dim* (row-of-cell cell)))))
