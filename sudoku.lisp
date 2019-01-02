@@ -67,12 +67,14 @@
     (2 5 -  - - -  - - -)
     ))
 
-    (defun matrix-transpose (matrix)
+(defun matrix-transpose (matrix)
   (when matrix
     (apply #'mapcar #'list matrix)))
 
 
 (defun take(n lst) (subseq lst 0 n ))
+
+(defun drop(n lst) (subseq lst n))
 
 (defun istrue(n) (eq n T))
 
@@ -121,11 +123,11 @@
             (poss-col (set-difference (range 1 *dim*) (col c)))
             (poss-group (set-difference (range 1 *dim*) (9group (9group-ref r c)))))
         (intersection poss-row (intersection poss-col poss-group))))
-        (t ())))
+        (t (list (cell r c)))))
 
 (defun report-possibles()
   (flet ((np (x) (eq nil (third x))))
-    (remove-if-not #'np (apply #'append 
+    (remove-if #'np (apply #'append 
       (loop for r from 0 below *dim* collect 
             (loop for c from 0 below *dim* collect
                   (list r c (possibles r c))))))))
@@ -194,6 +196,10 @@
   (progn
     (loop for r from 0 below *dim* do (print (row r)))
     (if (not(valid-board)) (prin1 "BOARD FOOKED!"))))
+
+(defun pr-grid(g)
+  (loop for r in g do
+        (print r)))
 
 (defun is-finished() 
   (not (find '- (apply #'append *grid*))))
@@ -303,9 +309,12 @@
     (if (not(is-finished)) (non-deep) (print-grid))))
 
 
-(defun permutations-pair(lst)
-  (apply #'append 
-         (maplist (lambda(x)(mapcar (lambda(y)(list (first x) y)) (cdr x))) lst)))
+(defun update-possible(cell possibles)
+  (let ((cid (+ (col-of-cell cell) (* *dim* (row-of-cell cell)))))
+    (setf (nth cid possibles) cell)))
+
+(defun pair-combinations(lst)
+  (apply #'append (maplist (lambda(x)(mapcar (lambda(y)(list (first x) y)) (cdr x))) lst)))
 
 (defun find-frequencies(grouping)
   (let ((freqs (sort (apply #'append (mapcar (lambda(x)(cell-possibles x)) (copy-tree grouping))) '< )))
@@ -314,24 +323,50 @@
 (defun hidden-singles(grouping)
   (let* ((freqs (find-frequencies grouping))
         (sgls (mapcar #'first (remove-if-not (lambda(x)(eq 1 (second x))) freqs))))
-    (loop for i in sgls
-     collect (let ((cell (find-if (lambda(x)(member i (cell-possibles x))) grouping)))
-               (list (row-of-cell cell) (col-of-cell cell) (list i))))))
+    (loop for c in grouping 
+            when (and (> (length (cell-possibles c)) 1) (intersection sgls (cell-possibles c))) collect (intersection sgls (cell-possibles c)))))
 
 
 (defun hidden-pairs(group)
   (let* ((frqs (find-frequencies group))
-         (perms (permutations-pair(mapcar #'first (remove-if (lambda(x)(not(eq 2 (second x)))) frqs)))))
-    (remove-if-not #'second (loop for p in perms collect (list p (find-pair-cells p group))))))
+         (perms (pair-combinations(mapcar #'first (remove-if (lambda(x)(not(eq 2 (second x)))) frqs)))))
+    (loop for p in perms when (is-pair p group) collect p)))
 
-
-(defun find-pair-cells(pair grouping) 
+(defun is-pair(pair grouping) 
   (let ((cs (remove-if-not (lambda(x)(intersection pair (cell-possibles x))) grouping)))
-    (if(eq 2 (length cs)) cs nil)))
+    (eq 2 (length cs))))
 
+(defun reduce-group(combo grouping)
+    (loop for c in grouping
+        when (intersection combo (cell-possibles c)) collect (make-cell (row-of-cell c) (col-of-cell c) combo)))
 
-(defun reduce-pairs-from-grouping(pair grouping)
-    (loop for c in grouping collect
-      (let ((row (row-of-cell c))
-            (col (col-of-cell c)))
-        (if(intersection pair (cell-possibles c)) (make-cell row col pair) c))))
+(defun reduce-possibles(filter possibles) 
+  (let ((fps (funcall filter possibles)))
+    (apply #'append (loop for chg in (append (hidden-singles fps) (hidden-pairs fps))
+          collect (reduce-group chg fps)))))
+
+; destructive update of possibles
+(defun apply-reductions(rs possibles) 
+  (mapcar (lambda(x)(update-possible x possibles)) rs))
+
+(defun possibles->grid(poss)
+  (let ((repr (mapcar (lambda(x)(if(eq 1 (length(cell-possibles x)))(car(cell-possibles x)) '-)) poss)))
+    (mapcar (lambda(x)(take *dim* (drop (* x *dim*) repr))) (range 0 8))))
+
+(defun solve3(grid) 
+  (setf *grid* grid)
+  (let ((ps (report-possibles)))
+   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lambda(x)(row-group n x)) ps) ps))
+   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lambda(x)(col-group n x)) ps) ps))
+   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lambda(x)(square-group n x)) ps) ps))
+   (cond ((is-finished)
+          (if(not(valid-board))(print "uh-oh; invalid board!!"))
+          (print "Hurrah!")
+          (setf *grid* (possibles->grid ps))
+          (print-grid)
+          (return-from solve3 t))
+
+         ((not(equal grid (possibles->grid ps)))
+          (return-from solve3 (solve3(possibles->grid ps)))))
+
+  (print "BLOCKED!") ))
