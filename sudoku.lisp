@@ -293,7 +293,7 @@
   (print "BLOCKED!") nil ))
 
 (defun test-boards()
-  (mapcar #'solve (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* )))
+  (mapcar #'solve-deep (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* )))
 
 
 
@@ -319,17 +319,17 @@
 
 
 (defun solve-deep(grid)
-  (let ((solved? (solve grid)))
+  (let ((solved? (solve grid))
+        (ps (report-possibles)))
     (setf grid *grid*)
-    (if solved? (print "DONE") 
-      (loop for p in (report-possibles) when (> (length(cell-possibles p)) 1) do
+    (if solved? (return-from solve-deep t)
+      (loop for p in ps when (> (length(cell-possibles p)) 1) do
             (loop for pp in (cell-possibles p) do
                   (push (copy-tree grid) *grid-stack*)
                   (setf (nth (col-of-cell p) (nth (row-of-cell p) grid )) pp)
-                  (format t "Going deep with supposition ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
-                  (pr-grid grid)
-                  ;(read)
-                  (solve-deep grid)
+                  (format t "~%Going deep with supposition ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
+                  (if (solve-deep grid) (return-from solve-deep t))
                   (setf grid (pop *grid-stack*))
-                  (print "back")
+                  (format t "~%Back from testing supposition ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
                   (pr-grid grid))))))
+
