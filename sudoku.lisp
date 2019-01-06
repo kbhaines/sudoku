@@ -1,3 +1,8 @@
+
+
+(defvar *clear* (format nil "~c[2J" #\Escape))
+(defvar *home* (format nil "~c[H" #\Escape))
+
 (defparameter *dim* 9)
 
 (defparameter *level* 0)
@@ -159,11 +164,11 @@
 
 (defun mand(x y) (and x y))
 
-(defun row(n) (nth n *grid*))
+(defun row(grid n) (nth n grid))
 
-(defun col(n) (flet ((c (row)(nth n row))) (mapcar #'c *grid*)))
+(defun col(grid n) (flet ((c (row)(nth n row))) (mapcar #'c grid)))
 
-(defun cell(r c) (nth c (row r)))
+(defun cell(grid r c) (nth c (row grid r)))
 
 (defun row-of-cell(cell) (first cell))
 (defun col-of-cell(cell) (second cell))
@@ -176,45 +181,44 @@
         (rblock (truncate (/ r 3))))
     (+ cblock (* 3 rblock))))
 
-(defun 9group(n) 
+(defun 9group(grid n) 
   (let ((ri (* 3 (truncate (/ n 3))))
         (ci (* 3 (truncate (mod n 3)))))
     (apply #'append 
       (loop for n from ri to (+ 2 ri) collect 
-          (subseq (row n) ci (+ 3 ci))))
+          (subseq (row grid n) ci (+ 3 ci))))
     ))
 
 ; lists possible values for cell at row r, col c.  Likely to be a superset of
 ; actual possible values, as it doesn't analyse the cell's row/col/group in
 ; depth.
-(defun possibles(r c) 
-  (cond ((eq '- (cell r c))
-      (let ((poss-row (set-difference (range 1 *dim*) (row r)))
-            (poss-col (set-difference (range 1 *dim*) (col c)))
-            (poss-group (set-difference (range 1 *dim*) (9group (9group-ref r c)))))
+(defun possibles(grid r c) 
+  (cond ((eq '- (cell grid r c))
+      (let ((poss-row (set-difference (range 1 *dim*) (row grid r)))
+            (poss-col (set-difference (range 1 *dim*) (col grid c)))
+            (poss-group (set-difference (range 1 *dim*) (9group grid (9group-ref r c)))))
         (intersection poss-row (intersection poss-col poss-group))))
-        (t (list (cell r c)))))
+        (t (list (cell grid r c)))))
 
-(defun report-possibles()
+(defun report-possibles(grid)
     (apply #'append 
       (loop for r from 0 below *dim* collect 
             (loop for c from 0 below *dim* collect
-                  (list r c (possibles r c))))))
+                  (list r c (possibles grid r c))))))
 
 
 (defun cell->rc(cell) 
   (list (truncate (/ cell *dim*)) (mod cell *dim*)))
 
-(defun set-cell(r c val)
-  (setf (nth c (nth r *grid* )) val))
+(defun set-cell(grid r c val) (setf (nth c (nth r grid)) val))
 
-(defun valid-board() 
+(defun valid-board(grid) 
   (flet ((all-rows-valid() 
-           (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (row i)))))
+           (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (row grid i)))))
          (all-cols-valid()
-           (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (col i)))))
+           (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (col grid i)))))
          (all-groups-valid()
-           (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (9group i))))))
+           (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (9group grid i))))))
 
     (and (all-rows-valid) (all-cols-valid) (all-groups-valid))))
 
@@ -222,19 +226,16 @@
   (labels ((count-occurences(lst) (count (car lst) (cdr lst))))
     (eq 0 (reduce #'+ (maplist #'count-occurences (remove '- lst))))))
 
-(defun print-grid () 
+(defun print-grid (grid) 
   (progn
-    (loop for r from 0 below *dim* do (print (row r)))
-    (if (not(valid-board)) (prin1 "BOARD FOOKED!"))))
+    (loop for r from 0 below *dim* do (print (row grid r)))
+    (if (not(valid-board grid)) (prin1 "BOARD FOOKED!"))))
 
 (defun pr-grid(g)
   (loop for r in g do
         (print r)))
 
-(defun is-finished() 
-  (not (find '- (apply #'append *grid*))))
-
-(setf *grid* *board4*)
+(defun is-finished(grid) (not (find '- (apply #'append grid))))
 
 (defun make() (ext:saveinitmem "exec" :init-function 'main :executable t :norc t))
 
@@ -289,27 +290,24 @@
     (mapcar (lx take *dim* (drop (* x *dim*) repr)) (range 0 8))))
 
 (defun solve(grid) 
-  (setf *grid* grid)
-  (let ((ps (report-possibles)))
+  (let ((ps (report-possibles grid)))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx row-group n x) ps) ps))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx col-group n x) ps) ps))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx square-group n x) ps) ps))
-   (cond ((is-finished)
-          (if(not(valid-board))(progn (print "uh-oh; invalid board!!") (return-from solve nil)))
+   (cond ((is-finished grid)
+          (if(not(valid-board grid))(progn (print "uh-oh; invalid board!!") (return-from solve grid)))
           (print "Hurrah!")
-          (setf *grid* (possibles->grid ps))
-          (print-grid)
-          (return-from solve t))
+          (setf grid (possibles->grid ps))
+          (print-grid grid)
+          (return-from solve grid))
 
          ((not(equal grid (possibles->grid ps)))
           (return-from solve (solve(possibles->grid ps)))))
-
-  (print "BLOCKED!") nil ))
+  (print "BLOCKED!") 
+  grid ))
 
 (defun test-boards()
-  (mapcar #'solve-deep (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* )))
-
-
+  (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* )))
 
 (defun combos(lst)
   (if (< (length lst) 3) (return-from combos nil))
@@ -331,19 +329,17 @@
         (ps (mapcar #'cell-possibles grouping)))
     (remove-if (lx not(eq 3 (second x))) (loop for c in cmbs collect (list c (length (remove nil (mapcar (lx intersection c x) ps))))))))
 
+(defun solved(grid) (and (is-finished grid) (valid-board grid)))
 
 (defun solve-deep(grid)
-  (let ((solved? (solve grid))
-        (ps (report-possibles)))
-    (setf grid *grid*)
-    (if solved? (return-from solve-deep t)
-      (loop for p in ps when (> (length(cell-possibles p)) 1) do
-            (loop for pp in (cell-possibles p) do
-                  (push (copy-tree grid) *grid-stack*)
-                  (setf (nth (col-of-cell p) (nth (row-of-cell p) grid )) pp)
-                  (format t "~%Going deep with supposition ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
-                  (if (solve-deep grid) (return-from solve-deep t))
-                  (setf grid (pop *grid-stack*))
-                  (format t "~%Back from testing supposition ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
-                  (pr-grid grid))))))
+  (let ((newgrid (solve grid)))
+    (if (solved newgrid) (return-from solve-deep newgrid))
+    (loop for p in (report-possibles newgrid) when (> (length(cell-possibles p)) 1) do
+          (loop for pp in (cell-possibles p) do
+                (format t "~%Going deep with guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
+                (setf (nth (col-of-cell p) (nth (row-of-cell p) newgrid )) pp)
+                (let ((ng (solve-deep newgrid)))
+                  (if (solved ng) (return-from solve-deep ng)))
+                (format t "~%Back from testing guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)))
+    newgrid))
 
