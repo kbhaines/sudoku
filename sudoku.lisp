@@ -237,6 +237,8 @@
 
 (defun is-finished(grid) (not (find '- (apply #'append grid))))
 
+(defun solved(grid) (and (is-finished grid) (valid-board grid)))
+
 (defun make() (ext:saveinitmem "exec" :init-function 'main :executable t :norc t))
 
 (defun row-group(r possibles) (remove-if-not (lx eq r (first x)) possibles))
@@ -329,8 +331,6 @@
         (ps (mapcar #'cell-possibles grouping)))
     (remove-if (lx not(eq 3 (second x))) (loop for c in cmbs collect (list c (length (remove nil (mapcar (lx intersection c x) ps))))))))
 
-(defun solved(grid) (and (is-finished grid) (valid-board grid)))
-
 (defun solve-deep(grid)
   (let ((newgrid (solve grid)))
     (if (solved newgrid) (return-from solve-deep newgrid))
@@ -338,8 +338,8 @@
           (loop for pp in (cell-possibles p) do
                 (format t "~%Going deep with guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
                 (setf (nth (col-of-cell p) (nth (row-of-cell p) newgrid )) pp)
-                (let ((ng (solve-deep newgrid)))
-                  (if (solved ng) (return-from solve-deep ng)))
+                (let ((newgrid (solve-deep newgrid)))
+                  (if (solved newgrid) (return-from solve-deep newgrid)))
                 (format t "~%Back from testing guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)))
     newgrid))
 
