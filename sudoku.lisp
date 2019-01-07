@@ -262,7 +262,7 @@
 
 (defun reduce-possibles(filter possibles) 
   (let ((fps (funcall filter possibles)))
-    (apply #'append (loop for chg in (append (hidden-singles fps) (hidden-pairs fps))
+    (apply #'append (loop for chg in (append (hidden-singles fps) (hidden-pairs fps) )
           collect (reduce-group chg fps)))))
 
 ; destructive update of possibles
@@ -277,17 +277,19 @@
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx row-group n x) ps) ps))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx col-group n x) ps) ps))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx square-group n x) ps) ps))
-   (cond ((is-finished grid)
-          (if(not(valid-board grid))(progn (print "uh-oh; invalid board!!") (return-from solve grid)))
-          (print "Hurrah!")
-          (setf grid (possibles->grid ps))
-          (print-grid grid)
-          (return-from solve grid))
+   (let ((newgrid (possibles->grid ps)))
+     (cond ((is-finished newgrid)
+            (if(not(valid-board newgrid))
+              (progn (print "uh-oh; invalid board!!") (return-from solve newgrid)))
+            (print "Hurrah!")
+            (pr-grid newgrid)
+            (return-from solve newgrid))
 
-         ((not(equal grid (possibles->grid ps)))
-          (return-from solve (solve(possibles->grid ps)))))
-  (print "BLOCKED!") 
-  grid ))
+           ((not(equal newgrid grid ))
+            (return-from solve (solve newgrid))))
+    (print "BLOCKED!") 
+  newgrid )))
+
 
 (defun test-boards()
   (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* )))
