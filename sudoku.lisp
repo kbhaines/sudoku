@@ -12,10 +12,6 @@
 (defparameter *grid* 
     (mapcar (lambda(_)(make-list *dim* :initial-element '- )) (range 1 *dim*)))
 
-; deep copy: copy-tree
-(defparameter *grid-stack* () )
-
-
 (defparameter *board1*
   '((- - -  - 1 -  7 3 -)
     (8 - -  - - 9  - 1 2)
@@ -147,20 +143,11 @@
     (- - -  8 - 6  - 3 -)
     ))
 
-(defun matrix-transpose (matrix)
-  (when matrix
-    (apply #'mapcar #'list matrix)))
-
-
 (defmacro lx (&body body) `(lambda(x) (,@body)))
 
 (defun take(n lst) (subseq lst 0 n ))
-
 (defun leave(n lst) (subseq lst 0 (- (length lst) n)))
-
 (defun drop(n lst) (subseq lst n))
-
-(defun istrue(n) (eq n T))
 
 (defun mand(x y) (and x y))
 
@@ -172,22 +159,21 @@
 
 (defun row-of-cell(cell) (first cell))
 (defun col-of-cell(cell) (second cell))
-(defun square-of-cell(cell) (9group-ref (first cell) (second cell)))
+(defun square-of-cell(cell) (square-ref (first cell) (second cell)))
 (defun cell-possibles (cell) (third cell))
 (defun make-cell(row col possibles) (list row col possibles))
 
-(defun 9group-ref(r c) 
+(defun square-ref(r c) 
   (let ((cblock (truncate (/ c 3)))
         (rblock (truncate (/ r 3))))
     (+ cblock (* 3 rblock))))
 
-(defun 9group(grid n) 
+(defun square(grid n) 
   (let ((ri (* 3 (truncate (/ n 3))))
         (ci (* 3 (truncate (mod n 3)))))
     (apply #'append 
       (loop for n from ri to (+ 2 ri) collect 
-          (subseq (row grid n) ci (+ 3 ci))))
-    ))
+          (subseq (row grid n) ci (+ 3 ci))))))
 
 ; lists possible values for cell at row r, col c.  Likely to be a superset of
 ; actual possible values, as it doesn't analyse the cell's row/col/group in
@@ -196,19 +182,15 @@
   (cond ((eq '- (cell grid r c))
       (let ((poss-row (set-difference (range 1 *dim*) (row grid r)))
             (poss-col (set-difference (range 1 *dim*) (col grid c)))
-            (poss-group (set-difference (range 1 *dim*) (9group grid (9group-ref r c)))))
+            (poss-group (set-difference (range 1 *dim*) (square grid (square-ref r c)))))
         (intersection poss-row (intersection poss-col poss-group))))
         (t (list (cell grid r c)))))
 
 (defun report-possibles(grid)
     (apply #'append 
-      (loop for r from 0 below *dim* collect 
-            (loop for c from 0 below *dim* collect
+      (loop for r below *dim* collect 
+            (loop for c below *dim* collect
                   (list r c (possibles grid r c))))))
-
-
-(defun cell->rc(cell) 
-  (list (truncate (/ cell *dim*)) (mod cell *dim*)))
 
 (defun set-cell(grid r c val) (setf (nth c (nth r grid)) val))
 
@@ -218,7 +200,7 @@
          (all-cols-valid()
            (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (col grid i)))))
          (all-groups-valid()
-           (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (9group grid i))))))
+           (reduce #'mand (mapcar #'unique-set (loop for i from 0 below *dim* collect (square grid i))))))
 
     (and (all-rows-valid) (all-cols-valid) (all-groups-valid))))
 
@@ -255,7 +237,7 @@
   (apply #'append (maplist (lx mapcar (lambda(y)(list (first x) y)) (cdr x)) lst)))
 
 (defun find-frequencies(grouping)
-  (let ((freqs (sort (apply #'append (mapcar (lx cell-possibles x) (copy-tree grouping))) '< )))
+  (let ((freqs (apply #'append (mapcar (lx cell-possibles x) grouping))))
         (mapcar (lx list x (count x freqs)) (remove-duplicates freqs))))
 
 (defun hidden-singles(grouping)
@@ -284,8 +266,7 @@
           collect (reduce-group chg fps)))))
 
 ; destructive update of possibles
-(defun apply-reductions(rs possibles) 
-  (mapcar (lx update-possible x possibles) rs))
+(defun apply-reductions(rs possibles) (mapcar (lx update-possible x possibles) rs))
 
 (defun possibles->grid(poss)
   (let ((repr (mapcar (lx if(eq 1 (length(cell-possibles x)))(car(cell-possibles x)) '-) poss)))
@@ -329,7 +310,7 @@
 (defun hidden-triples(grouping)
   (let ((cmbs (group-combos grouping))
         (ps (mapcar #'cell-possibles grouping)))
-    (remove-if (lx not(eq 3 (second x))) (loop for c in cmbs collect (list c (length (remove nil (mapcar (lx intersection c x) ps))))))))
+    (mapcar #'first (remove-if (lx not(eq 3 (second x))) (loop for c in cmbs collect (list c (length (remove nil (mapcar (lx intersection c x) ps)))))))))
 
 (defun solve-deep(grid)
   (let ((newgrid (solve grid)))
