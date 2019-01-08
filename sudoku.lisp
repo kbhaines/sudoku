@@ -254,9 +254,9 @@
 
 (defun solve(grid) 
   (let ((ps (report-possibles grid)))
-   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx row-group n x) ps) ps))
-   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx col-group n x) ps) ps))
-   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (lx square-group n x) ps) ps))
+   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (row-group n ps)) ps))
+   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (col-group n ps)) ps))
+   (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (square-group n ps)) ps))
    (let ((newgrid (possibles->grid ps)))
      (cond ((is-finished newgrid)
             (if(not(valid-board newgrid))
@@ -277,11 +277,10 @@
   (let ((cid (+ (col-of-cell cell) (* *dim* (row-of-cell cell)))))
     (setf (nth cid possibles) cell)))
 
-(defun reduce-possibles(filter possibles) 
-  (let ((fps (funcall filter possibles)))
-    ; hidden-triples testing slows the solving down overall; so not using it here.
-    (apply #'append (loop for chg in (append (hidden-singles fps) (hidden-pairs fps) )
-          collect (reduce-group chg fps)))))
+(defun reduce-possibles(possibles) 
+  ; hidden-triples testing slows the solving down overall; so not using it here.
+  (apply #'append (loop for chg in (append (hidden-singles possibles) (hidden-pairs possibles) )
+        collect (reduce-group chg possibles))))
 
 ; the grouping can be reduced by intersecting combo, which is assumed to be a hidden single/pair/triple
 ; any cell that has this combo as a subset can have its other options eliminated
