@@ -1,16 +1,27 @@
 
-
 (defvar *clear* (format nil "~c[2J" #\Escape))
 (defvar *home* (format nil "~c[H" #\Escape))
 
 (defparameter *dim* 9)
 
-(defparameter *level* 0)
-
 (defun range(low high) (loop for n from low below (1+ high) collect n))
 
 (defparameter *grid* 
     (mapcar (lambda(_)(make-list *dim* :initial-element '- )) (range 1 *dim*)))
+
+(defparameter *gg* '(
+- - -  - 1 -  7 3 -
+8 - -  - - 9  - 1 2
+1 - 5  - 2 -  8 4 -
+
+5 7 9  - - -  1 - -
+- - 8  3 - -  - - -
+- 4 -  - - -  9 - -
+
+- - -  6 - -  3 7 -
+7 5 -  - - 4  - - -
+- 2 -  - - -  5 8 4
+))
 
 (defparameter *board1*
   '((- - -  - 1 -  7 3 -)
@@ -150,6 +161,7 @@
 
 (defun take(n lst) (subseq lst 0 n ))
 (defun leave(n lst) (subseq lst 0 (- (length lst) n)))
+(defun slice(n l lst) (subseq lst n (+ n l)))
 (defun drop(n lst) (subseq lst n))
 (defun mand(x y) (and x y))
 
@@ -211,8 +223,12 @@
     (if (not(valid-board grid)) (prin1 "BOARD FOOKED!"))))
 
 (defun pr-grid(g)
-  (loop for r in g do
-        (print r)))
+  (loop for r in g for rc below 9 do
+        (let ((g1 (slice 0 3 r))
+              (g2 (slice 3 3 r))
+              (g3 (slice 6 3 r)))
+          (if (or (eq 3 rc) (eq 6 rc)) (princ #\Newline))
+          (format t "~{~a ~a ~a~}  ~{~a ~a ~a~}   ~{~a ~a ~a~}~%" g1 g2 g3))))
 
 (defun is-finished(grid) (not (find '- (apply #'append grid))))
 
@@ -248,10 +264,6 @@
     (eq 2 (length cs))))
 
 
-(defun possibles->grid(poss)
-  (let ((repr (mapcar (lx if(eq 1 (length(cell-possibles x)))(car(cell-possibles x)) '-) poss)))
-    (mapcar (lx take *dim* (drop (* x *dim*) repr)) (range 0 8))))
-
 (defun solve(grid) 
   (let ((ps (report-possibles grid)))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (row-group n ps)) ps))
@@ -282,11 +294,31 @@
   (apply #'append (loop for chg in (append (hidden-singles possibles) (hidden-pairs possibles) )
         collect (reduce-group chg possibles))))
 
-; the grouping can be reduced by intersecting combo, which is assumed to be a hidden single/pair/triple
-; any cell that has this combo as a subset can have its other options eliminated
+; the grouping can be reduced by intersecting combo, which is assumed to be a
+; hidden single/pair/triple any cell that has this combo as a subset can have
+; its other options eliminated. Note  we put back the intersection so as not to
+; increase the options in the cell
 (defun reduce-group(combo grouping)
     (loop for c in grouping
         when (intersection combo (cell-possibles c)) collect (make-cell (row-of-cell c) (col-of-cell c) (intersection combo (cell-possibles c)))))
+
+; make a grid from the possibles
+(defun possibles->grid(poss)
+  (let ((repr (mapcar (lx if(eq 1 (length(cell-possibles x)))(car(cell-possibles x)) '-) poss)))
+    (mapcar (lx take *dim* (drop (* x *dim*) repr)) (range 0 8))))
+
+
+(defun solve-deep(grid)
+  (let ((newgrid (solve grid)))
+    (if (solved newgrid) (return-from solve-deep newgrid))
+    (loop for p in (report-possibles newgrid) when (> (length(cell-possibles p)) 1) do
+          (loop for pp in (cell-possibles p) do
+                (format t "~%Going deep with guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
+                (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
+                (let ((newgrid (solve-deep newgrid)))
+                  (if (solved newgrid) (return-from solve-deep newgrid)))
+                (format t "~%Back from testing guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)))
+    newgrid))
 
 
 (defun test-boards()
@@ -313,15 +345,10 @@
         (ps (mapcar #'cell-possibles grouping)))
     (mapcar #'first (remove-if (lx not(eq 3 (second x))) (loop for c in cmbs collect (list c (length (remove nil (mapcar (lx intersection c x) ps)))))))))
 
-(defun solve-deep(grid)
-  (let ((newgrid (solve grid)))
-    (if (solved newgrid) (return-from solve-deep newgrid))
-    (loop for p in (report-possibles newgrid) when (> (length(cell-possibles p)) 1) do
-          (loop for pp in (cell-possibles p) do
-                (format t "~%Going deep with guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
-                (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
-                (let ((newgrid (solve-deep newgrid)))
-                  (if (solved newgrid) (return-from solve-deep newgrid)))
-                (format t "~%Back from testing guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)))
-    newgrid))
+(defun read81()
+  (let ((chars '(#\- #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9)))
+    (labels ((acc (listsofar)
+                (if (> (length listsofar) 80) (return-from acc (take 81 listsofar)))
+                (return-from acc (acc (append listsofar (remove-if (lx not(member x chars)) (coerce (read-line) 'list)))))))
+      (acc '()))))
 
