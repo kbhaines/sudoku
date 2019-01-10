@@ -263,22 +263,24 @@
   (let ((cs (remove-if-not (lx intersection pair (cell-possibles x)) grouping)))
     (eq 2 (length cs))))
 
+
 (defun solve(grid) 
-  (labels ((solvex (grid ps)
+  (let ((ps (report-possibles grid)))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (row-group n ps)) ps))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (col-group n ps)) ps))
    (loop for n from 0 below *dim* do (apply-reductions (reduce-possibles (square-group n ps)) ps))
    (let ((newgrid (possibles->grid ps)))
      (cond ((is-finished newgrid)
             (if(not(valid-board newgrid))
-              (progn (print "uh-oh; invalid board!!") (return-from solvex newgrid)))
-            (return-from solvex newgrid))
+              (progn (print "uh-oh; invalid board!!") (return-from solve newgrid)))
+            (print "Hurrah!")
+            (pr-grid newgrid)
+            (return-from solve newgrid))
 
            ((not(equal newgrid grid ))
-            (return-from solvex (solvex newgrid ps))))
-     (print 'Blocked)
-     newgrid)))
-     (solvex grid (report-possibles grid))))
+            (return-from solve (solve newgrid))))
+    (print "BLOCKED!") 
+  newgrid )))
 
 ; destructive update of possibles
 (defun apply-reductions(rs possibles) (mapcar (lx update-possible x possibles) rs))
