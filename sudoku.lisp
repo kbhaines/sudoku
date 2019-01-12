@@ -154,6 +154,21 @@
     (- - -  8 - 6  - 3 -)
     ))
 
+; 350 dumper sudoku
+(defparameter *board10*
+  '((- 9 -  - 3 -  - - -)
+    (- 5 -  2 - 8  - - 3)
+    (4 3 -  - - -  - - -)
+
+    (5 - -  - 2 -  6 - -)
+    (- 1 -  5 9 3  - 7 -)
+    (- - 2  - 8 -  - - 1)
+
+    (- - -  - - -  - 2 7)
+    (3 - -  9 - 2  - 4 -)
+    (- - -  - 5 -  - 3 -)
+    ))
+
 (defun make() (ext:saveinitmem "exec" :init-function 'main :executable t :norc t))
 
 ; fun little macro to save typing 'lambda(x)(...)'... just because
@@ -273,14 +288,12 @@
      (cond ((is-finished newgrid)
             (if(not(valid-board newgrid))
               (progn (print "uh-oh; invalid board!!") (return-from solve newgrid)))
-            (print "Hurrah!")
-            (pr-grid newgrid)
             (return-from solve newgrid))
 
            ((not(equal newgrid grid ))
             (return-from solve (solve newgrid))))
-    (print "BLOCKED!") 
-  newgrid )))
+    (print 'Blocked) 
+    newgrid )))
 
 ; destructive update of possibles
 (defun apply-reductions(rs possibles) (mapcar (lx update-possible x possibles) rs))
@@ -347,8 +360,8 @@
 
 (defun read81()
   (let ((chars '(#\- #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9)))
-    (labels ((acc (listsofar)
-                (if (> (length listsofar) 80) (return-from acc (take 81 listsofar)))
-                (return-from acc (acc (append listsofar (remove-if (lx not(member x chars)) (coerce (read-line) 'list)))))))
+    (labels ((acc (listsofar) 
+                  (if (> (length listsofar) 80) (return-from acc (take 81 listsofar))) 
+                  (return-from acc (acc (append listsofar (remove-if (lx not(member x chars)) (coerce (read-line) 'list)))))))
       (acc '()))))
 
