@@ -338,13 +338,16 @@
                 (if callback (funcall callback newgrid))
                 (let ((newgrid (solve-deep newgrid callback)))
                   (if (solved newgrid) (return-from solve-deep newgrid)))))
+                ;(set-cell newgrid (row-of-cell p) (col-of-cell p) '- )))
                 ;(format t "~%Back from testing guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)))
-    newgrid))
+    grid))
+
 
 (defun animated-solve(grid)
   (pr-grid grid)
-  (solve-deep grid #'overprint-grid)
-  (format t "~%"))
+  (let ((solution (solve-deep grid #'overprint-grid)))
+    (format t "~%")
+    (return-from animated-solve solution)))
 
 
 (defun test-boards()
