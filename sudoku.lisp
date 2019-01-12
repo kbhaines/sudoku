@@ -211,6 +211,9 @@
             (loop for c below *dim* collect
                   (list r c (possibles grid r c))))))
 
+(defun valid-possibles(ps)
+  (eq 0 (count nil (mapcar #'cell-possibles ps))))
+
 ; lists possible values for grid cell at row r, col c.  Likely to be a superset of
 ; actual possible values, as it doesn't analyse the cell's row/col/group in
 ; depth.
@@ -331,15 +334,18 @@
   (let ((newgrid (solve grid)))
     (if callback (funcall callback newgrid))
     (if (solved newgrid) (return-from solve-deep newgrid))
-    (loop for p in (report-possibles newgrid) when (> (length(cell-possibles p)) 1) do
-          (loop for pp in (cell-possibles p) do
-                ;(format t "~%Going deep with guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
-                (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
-                (if callback (funcall callback newgrid))
-                (let ((newgrid (solve-deep newgrid callback)))
-                  (if (solved newgrid) (return-from solve-deep newgrid)))))
-                ;(set-cell newgrid (row-of-cell p) (col-of-cell p) '- )))
-                ;(format t "~%Back from testing guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)))
+    (let* ((ps (report-possibles newgrid))
+           (p (car (remove-if (lx not(> (length (cell-possibles x)) 1)) ps))))
+      (if (not(valid-possibles ps)) (return-from solve-deep newgrid))
+      (loop for pp in (cell-possibles p) do
+            ;(pr-grid newgrid)
+            ;(format t "~a ~a" p pp)
+            ;(break)
+            (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
+            (if callback (funcall callback newgrid))
+            (let ((newgrid (solve-deep newgrid callback)))
+              (if (solved newgrid) (return-from solve-deep newgrid)))
+            (set-cell newgrid (row-of-cell p) (col-of-cell p) '- )))
     grid))
 
 
