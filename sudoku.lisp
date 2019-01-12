@@ -1,6 +1,7 @@
 
 (defvar *clear* (format nil "~c[2J" #\Escape))
 (defvar *home* (format nil "~c[H" #\Escape))
+(defvar *up* (format nil "~c[A" #\Escape))
 
 (defparameter *dim* 9)
 
@@ -245,6 +246,10 @@
           (if (or (eq 3 rc) (eq 6 rc)) (princ #\Newline))
           (format t "~{~a ~a ~a~}  ~{~a ~a ~a~}   ~{~a ~a ~a~}~%" g1 g2 g3))))
 
+(defun overprint-grid(g)
+    (format t "~c[11A" #\Escape)
+    (pr-grid g))
+
 (defun is-finished(grid) (not (find '- (apply #'append grid))))
 
 (defun solved(grid) (and (is-finished grid) (valid-board grid)))
@@ -287,12 +292,13 @@
    (let ((newgrid (possibles->grid ps)))
      (cond ((is-finished newgrid)
             (if(not(valid-board newgrid))
-              (progn (print "uh-oh; invalid board!!") (return-from solve newgrid)))
+              ;(progn (print "uh-oh; invalid board!!") (return-from solve newgrid)))
+              (progn  (return-from solve newgrid)))
             (return-from solve newgrid))
 
            ((not(equal newgrid grid ))
             (return-from solve (solve newgrid))))
-    (print 'Blocked) 
+    ;(print 'Blocked) 
     newgrid )))
 
 ; destructive update of possibles
@@ -321,17 +327,24 @@
     (mapcar (lx take *dim* (drop (* x *dim*) repr)) (range 0 8))))
 
 
-(defun solve-deep(grid)
+(defun solve-deep(grid &optional callback)
   (let ((newgrid (solve grid)))
+    (if callback (funcall callback newgrid))
     (if (solved newgrid) (return-from solve-deep newgrid))
     (loop for p in (report-possibles newgrid) when (> (length(cell-possibles p)) 1) do
           (loop for pp in (cell-possibles p) do
-                (format t "~%Going deep with guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
+                ;(format t "~%Going deep with guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)
                 (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
-                (let ((newgrid (solve-deep newgrid)))
-                  (if (solved newgrid) (return-from solve-deep newgrid)))
-                (format t "~%Back from testing guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)))
+                (if callback (funcall callback newgrid))
+                (let ((newgrid (solve-deep newgrid callback)))
+                  (if (solved newgrid) (return-from solve-deep newgrid)))))
+                ;(format t "~%Back from testing guess ~d,~d = ~d" (row-of-cell p) (col-of-cell p) pp)))
     newgrid))
+
+(defun animated-solve(grid)
+  (pr-grid grid)
+  (solve-deep grid #'overprint-grid)
+  (format t "~%"))
 
 
 (defun test-boards()
