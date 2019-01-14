@@ -330,7 +330,7 @@
     (mapcar (lx take *dim* (drop (* x *dim*) repr)) (range 0 8))))
 
 
-(defun solve-deep(grid &optional callback)
+(defun solve-deep(grid &key callback)
   (let ((newgrid (solve grid)))
     (if callback (funcall callback newgrid))
     (if (solved newgrid) (return-from solve-deep newgrid))
@@ -343,7 +343,7 @@
             ;(break)
             (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
             (if callback (funcall callback newgrid))
-            (let ((newgrid (solve-deep newgrid callback)))
+            (let ((newgrid (solve-deep newgrid :callback callback)))
               (if (solved newgrid) (return-from solve-deep newgrid)))
             (set-cell newgrid (row-of-cell p) (col-of-cell p) '- )))
     grid))
@@ -351,7 +351,7 @@
 
 (defun animated-solve(grid)
   (pr-grid grid)
-  (let ((solution (solve-deep grid #'overprint-grid)))
+  (let ((solution (solve-deep grid :callback #'overprint-grid)))
     (format t "~%")
     (return-from animated-solve solution)))
 
