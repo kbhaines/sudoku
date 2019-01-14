@@ -336,12 +336,8 @@
     (if (solved newgrid) (return-from solve-deep newgrid))
     (let* ((ps (remove-if (lx eq 1 (length(cell-possibles x))) (report-possibles newgrid)))
            (p (first (sort ps (lambda(x y)(<(length (cell-possibles x)) (length (cell-possibles y))))))))
-      (if (< (length (cell-possibles p)) 2) (return-from solve-deep newgrid))
       (if (not(valid-possibles ps)) (return-from solve-deep newgrid))
       (loop for pp in (cell-possibles p) do
-            ;(pr-grid newgrid)
-            ;(format t "~a ~a" p pp)
-            ;(break)
             (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
             (if callback (funcall callback newgrid))
             (let ((newgrid (solve-deep newgrid :callback callback)))
