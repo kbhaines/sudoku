@@ -427,3 +427,7 @@
                   (return-from acc (acc (append listsofar (remove-if (lx not(member x chars)) (coerce (read-line) 'list)))))))
       (acc '()))))
 
+
+(defun parse-string-grid(str)
+  (flet ((parse-string(str) (mapcar (lx if (eq #\. x) '- (- (char-code x) 48)) (coerce str 'list))))
+    (loop for n below *dim* collect (subseq (parse-string str) (* 9 n) (+ (* 9 n) 9 )))))
