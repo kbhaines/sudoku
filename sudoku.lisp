@@ -170,6 +170,49 @@
     (- - -  - 5 -  - 3 -)
     ))
 
+(defparameter *board11*
+  '((- - 7  - - 8  - - 3)
+    (6 2 -  5 - -  - - -)
+    (- 3 -  - 6 -  - - 5)
+
+    (3 - 4  - - 1  - - -)
+    (9 - -  - - -  - - 1)
+    (- - -  7 - -  3 - 6)
+
+    (2 - -  - 3 -  - 8 -)
+    (- - -  - - 4  - 1 9)
+    (1 - -  9 - -  7 - -)
+    ))
+
+(defparameter *board12*
+  '((4 - 7  6 - -  2 - 3)
+    (8 - -  7 2 -  - 5 -)
+    (- - -  - - -  - - -)
+
+    (- - 5  4 - 6  - - -)
+    (- 9 -  - 1 -  - - -)
+    (- - 8  - 3 -  - - 7)
+
+    (1 3 -  - - -  - 4 -)
+    (- - -  - - -  6 - 5)
+    (- - -  - 7 -  - 1 9)
+    ))
+
+;; world's hardest
+;; https://www.telegraph.co.uk/news/science/science-news/9359579/Worlds-hardest-sudoku-can-you-crack-it.html
+(defparameter *board13*
+  '((8 - -  - - -  - - -)
+    (- - 3  6 - -  - - -)
+    (- 7 -  - 9 -  2 - -)
+
+    (- 5 -  - - 7  - - -)
+    (- - -  - 4 5  7 - -)
+    (- - -  1 - -  - 3 -)
+
+    (- - 1  - - -  - 6 8)
+    (- - 8  5 - -  - 1 -)
+    (- 9 -  - - -  4 - -)
+    ))
 (defun make() (ext:saveinitmem "exec" :init-function 'main :executable t :norc t))
 
 ; fun little macro to save typing 'lambda(x)(...)'... just because
@@ -354,7 +397,7 @@
 
 
 (defun test-boards()
-  (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* )))
+  (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* *board10* *board11* *board12*   )))
 
 ; return combinations of triples from the given list
 (defun combos(lst)
