@@ -429,5 +429,5 @@
 
 
 (defun parse-string-grid(str)
-  (flet ((parse-string(str) (mapcar (lx if (eq #\. x) '- (- (char-code x) 48)) (coerce str 'list))))
+  (flet ((parse-string(str) (mapcar (lx if (digit-char-p x) (- (char-code x) 48) '-) (coerce str 'list))))
     (loop for n below *dim* collect (subseq (parse-string str) (* 9 n) (+ (* 9 n) 9 )))))
