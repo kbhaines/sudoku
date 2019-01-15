@@ -232,7 +232,10 @@
 (defun set-cell(grid r c val) (setf (nth c (nth r grid)) val))
 
 
-(defstruct cell2 row col possibles :type list)
+(defclass cell2 () ((row :type integer :accessor cell2-row :initarg :row) (col :type integer :accessor cell2-col :initarg :col) (possibles :type list :accessor cell2-possibles :initarg :possibles)))
+
+(defun make-cell2 (r c p) (make-instance 'cell2 :row r :col c :possibles p))
+
 (defun cell-square(cell) (square-ref (cell2-row cell) (cell2-col cell)))
 
 (defun square-ref(r c) 
@@ -252,7 +255,7 @@
     (apply #'append 
       (loop for r below *dim* collect 
             (loop for c below *dim* collect
-                  (make-cell2 :row r :col c :possibles (possibles grid r c))))))
+                  (make-cell2 r c (possibles grid r c))))))
 
 (defun valid-possibles(ps)
   (eq 0 (count nil (mapcar #'cell2-possibles ps))))
@@ -365,7 +368,7 @@
 ; increase the options in the cell
 (defun reduce-group(combo grouping)
     (loop for c in grouping
-        when (intersection combo (cell2-possibles c)) collect (make-cell2 :row (cell2-row c) :col (cell2-col c) :possibles (intersection combo (cell2-possibles c)))))
+        when (intersection combo (cell2-possibles c)) collect (make-cell2 (cell2-row c) (cell2-col c) (intersection combo (cell2-possibles c)))))
 
 ; make a grid from the possibles
 (defun possibles->grid(poss)
