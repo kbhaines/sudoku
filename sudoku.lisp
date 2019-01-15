@@ -224,16 +224,16 @@
 (defun drop(n lst) (subseq lst n))
 (defun mand(x y) (and x y))
 
-
 ; functions for manipulating grids and cells
 (defun row(grid n) (nth n grid))
 (defun col(grid n) (flet ((c (row)(nth n row))) (mapcar #'c grid)))
 (defun cell(grid r c) (nth c (row grid r)))
+(defun row-of-cell(cell) (first cell))
+(defun col-of-cell(cell) (second cell))
+(defun square-of-cell(cell) (square-ref (first cell) (second cell)))
+(defun cell-possibles (cell) (third cell))
+(defun make-cell(row col possibles) (list row col possibles))
 (defun set-cell(grid r c val) (setf (nth c (nth r grid)) val))
-
-
-(defstruct cell2 row col possibles :type list)
-(defun cell-square(cell) (square-ref (cell2-row cell) (cell2-col cell)))
 
 (defun square-ref(r c) 
   (let ((cblock (truncate (/ c 3)))
@@ -252,10 +252,10 @@
     (apply #'append 
       (loop for r below *dim* collect 
             (loop for c below *dim* collect
-                  (make-cell2 :row r :col c :possibles (possibles grid r c))))))
+                  (list r c (possibles grid r c))))))
 
 (defun valid-possibles(ps)
-  (eq 0 (count nil (mapcar #'cell2-possibles ps))))
+  (eq 0 (count nil (mapcar #'cell-possibles ps))))
 
 ; lists possible values for grid cell at row r, col c.  Likely to be a superset of
 ; actual possible values, as it doesn't analyse the cell's row/col/group in
@@ -302,22 +302,22 @@
 
 
 ; functions to filter possibles down to groups
-(defun row-group(r possibles) (remove-if-not (lx eq r (cell2-row x)) possibles))
-(defun col-group(c possibles) (remove-if-not (lx eq c (cell2-col x)) possibles))
-(defun square-group(s possibles) (remove-if-not (lx eq s (cell-square x)) possibles))
+(defun row-group(r possibles) (remove-if-not (lx eq r (first x)) possibles))
+(defun col-group(c possibles) (remove-if-not (lx eq c (second x)) possibles))
+(defun square-group(s possibles) (remove-if-not (lx eq s (square-of-cell x)) possibles))
 
 (defun pair-combinations(lst)
   (apply #'append (maplist (lx mapcar (lambda(y)(list (first x) y)) (cdr x)) lst)))
 
 (defun find-frequencies(grouping)
-  (let ((freqs (apply #'append (mapcar (lx cell2-possibles x) grouping))))
+  (let ((freqs (apply #'append (mapcar (lx cell-possibles x) grouping))))
         (mapcar (lx list x (count x freqs)) (remove-duplicates freqs))))
 
 (defun hidden-singles(grouping)
   (let* ((freqs (find-frequencies grouping))
         (sgls (mapcar #'first (remove-if-not (lx eq 1 (second x)) freqs))))
     (loop for c in grouping 
-            when (and (> (length (cell2-possibles c)) 1) (intersection sgls (cell2-possibles c))) collect (intersection sgls (cell2-possibles c)))))
+            when (and (> (length (cell-possibles c)) 1) (intersection sgls (cell-possibles c))) collect (intersection sgls (cell-possibles c)))))
 
 
 (defun hidden-pairs(group)
@@ -326,7 +326,7 @@
     (loop for p in perms when (is-pair p group) collect p)))
 
 (defun is-pair(pair grouping) 
-  (let ((cs (remove-if-not (lx intersection pair (cell2-possibles x)) grouping)))
+  (let ((cs (remove-if-not (lx intersection pair (cell-possibles x)) grouping)))
     (eq 2 (length cs))))
 
 
@@ -351,7 +351,7 @@
 (defun apply-reductions(rs possibles) (mapcar (lx update-possible x possibles) rs))
 
 (defun update-possible(cell possibles)
-  (let ((cid (+ (cell2-col cell) (* *dim* (cell2-row cell)))))
+  (let ((cid (+ (col-of-cell cell) (* *dim* (row-of-cell cell)))))
     (setf (nth cid possibles) cell)))
 
 (defun reduce-possibles(possibles) 
@@ -365,11 +365,11 @@
 ; increase the options in the cell
 (defun reduce-group(combo grouping)
     (loop for c in grouping
-        when (intersection combo (cell2-possibles c)) collect (make-cell2 :row (cell2-row c) :col (cell2-col c) :possibles (intersection combo (cell2-possibles c)))))
+        when (intersection combo (cell-possibles c)) collect (make-cell (row-of-cell c) (col-of-cell c) (intersection combo (cell-possibles c)))))
 
 ; make a grid from the possibles
 (defun possibles->grid(poss)
-  (let ((repr (mapcar (lx if(eq 1 (length(cell2-possibles x)))(car(cell2-possibles x)) '-) poss)))
+  (let ((repr (mapcar (lx if(eq 1 (length(cell-possibles x)))(car(cell-possibles x)) '-) poss)))
     (mapcar (lx take *dim* (drop (* x *dim*) repr)) (range 0 8))))
 
 
@@ -377,16 +377,15 @@
   (let ((newgrid (solve grid)))
     (if callback (funcall callback newgrid))
     (if (solved newgrid) (return-from solve-deep newgrid))
-    (let* ((ps (remove-if (lx eq 1 (length(cell2-possibles x))) (report-possibles newgrid)))
-           (p (first (sort ps (lambda(x y)(<(length (cell2-possibles x)) (length (cell2-possibles y))))))))
-      (if (not p) (return-from solve-deep newgrid))
+    (let* ((ps (remove-if (lx eq 1 (length(cell-possibles x))) (report-possibles newgrid)))
+           (p (first (sort ps (lambda(x y)(<(length (cell-possibles x)) (length (cell-possibles y))))))))
       (if (not(valid-possibles ps)) (return-from solve-deep newgrid))
-      (loop for pp in (cell2-possibles p) do
-            (set-cell newgrid (cell2-row p) (cell2-col p) pp)
+      (loop for pp in (cell-possibles p) do
+            (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
             (if callback (funcall callback newgrid))
             (let ((newgrid (solve-deep newgrid :callback callback)))
               (if (solved newgrid) (return-from solve-deep newgrid)))
-            (set-cell newgrid (cell2-row p) (cell2-col p) '- )))
+            (set-cell newgrid (row-of-cell p) (col-of-cell p) '- )))
     grid))
 
 
@@ -398,7 +397,7 @@
 
 
 (defun test-boards()
-  (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* *board10* *board11* *board12* *board13*   )))
+  (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* *board10* *board11* *board12*   )))
 
 ; return combinations of triples from the given list
 (defun combos(lst)
@@ -418,7 +417,7 @@
 
 (defun hidden-triples(grouping)
   (let ((cmbs (group-combos grouping))
-        (ps (mapcar #'cell2-possibles grouping)))
+        (ps (mapcar #'cell-possibles grouping)))
     (mapcar #'first (remove-if (lx not(eq 3 (second x))) (loop for c in cmbs collect (list c (length (remove nil (mapcar (lx intersection c x) ps)))))))))
 
 (defun read81()
