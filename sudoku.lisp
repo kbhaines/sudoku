@@ -228,12 +228,13 @@
 (defun row(grid n) (nth n grid))
 (defun col(grid n) (flet ((c (row)(nth n row))) (mapcar #'c grid)))
 (defun cell(grid r c) (nth c (row grid r)))
-(defun row-of-cell(cell) (first cell))
-(defun col-of-cell(cell) (second cell))
-(defun square-of-cell(cell) (square-ref (first cell) (second cell)))
+(defun set-cell(grid r c val) (setf (nth c (nth r grid)) val))
+
+(defun cell-row(cell) (first cell))
+(defun cell-col(cell) (second cell))
+(defun cell-square(cell) (square-ref (first cell) (second cell)))
 (defun cell-possibles (cell) (third cell))
 (defun make-cell(row col possibles) (list row col possibles))
-(defun set-cell(grid r c val) (setf (nth c (nth r grid)) val))
 
 (defun square-ref(r c) 
   (let ((cblock (truncate (/ c 3)))
@@ -304,7 +305,7 @@
 ; functions to filter possibles down to groups
 (defun row-group(r possibles) (remove-if-not (lx eq r (first x)) possibles))
 (defun col-group(c possibles) (remove-if-not (lx eq c (second x)) possibles))
-(defun square-group(s possibles) (remove-if-not (lx eq s (square-of-cell x)) possibles))
+(defun square-group(s possibles) (remove-if-not (lx eq s (cell-square x)) possibles))
 
 (defun pair-combinations(lst)
   (apply #'append (maplist (lx mapcar (lambda(y)(list (first x) y)) (cdr x)) lst)))
@@ -351,7 +352,7 @@
 (defun apply-reductions(rs possibles) (mapcar (lx update-possible x possibles) rs))
 
 (defun update-possible(cell possibles)
-  (let ((cid (+ (col-of-cell cell) (* *dim* (row-of-cell cell)))))
+  (let ((cid (+ (cell-col cell) (* *dim* (cell-row cell)))))
     (setf (nth cid possibles) cell)))
 
 (defun reduce-possibles(possibles) 
@@ -365,7 +366,7 @@
 ; increase the options in the cell
 (defun reduce-group(combo grouping)
     (loop for c in grouping
-        when (intersection combo (cell-possibles c)) collect (make-cell (row-of-cell c) (col-of-cell c) (intersection combo (cell-possibles c)))))
+        when (intersection combo (cell-possibles c)) collect (make-cell (cell-row c) (cell-col c) (intersection combo (cell-possibles c)))))
 
 ; make a grid from the possibles
 (defun possibles->grid(poss)
@@ -381,11 +382,11 @@
            (p (first (sort ps (lambda(x y)(<(length (cell-possibles x)) (length (cell-possibles y))))))))
       (if (not(valid-possibles ps)) (return-from solve-deep newgrid))
       (loop for pp in (cell-possibles p) do
-            (set-cell newgrid (row-of-cell p) (col-of-cell p) pp)
+            (set-cell newgrid (cell-row p) (cell-col p) pp)
             (if callback (funcall callback newgrid))
             (let ((newgrid (solve-deep newgrid :callback callback)))
               (if (solved newgrid) (return-from solve-deep newgrid)))
-            (set-cell newgrid (row-of-cell p) (col-of-cell p) '- )))
+            (set-cell newgrid (cell-row p) (cell-col p) '- )))
     grid))
 
 
@@ -397,7 +398,7 @@
 
 
 (defun test-boards()
-  (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* *board10* *board11* *board12*   )))
+  (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* *board10* *board11* *board12* *board13*   )))
 
 ; return combinations of triples from the given list
 (defun combos(lst)
