@@ -7,213 +7,6 @@
 
 (defun range(low high) (loop for n from low below (1+ high) collect n))
 
-(defparameter *grid* 
-    (mapcar (lambda(_)(make-list *dim* :initial-element '- )) (range 1 *dim*)))
-
-(defparameter *gg* '(
-- - -  - 1 -  7 3 -
-8 - -  - - 9  - 1 2
-1 - 5  - 2 -  8 4 -
-
-5 7 9  - - -  1 - -
-- - 8  3 - -  - - -
-- 4 -  - - -  9 - -
-
-- - -  6 - -  3 7 -
-7 5 -  - - 4  - - -
-- 2 -  - - -  5 8 4
-))
-
-(defparameter *board1*
-  '((- - -  - 1 -  7 3 -)
-    (8 - -  - - 9  - 1 2)
-    (1 - 5  - 2 -  8 4 -)
-
-    (5 7 9  - - -  1 - -)
-    (- - 8  3 - -  - - -)
-    (- 4 -  - - -  9 - -)
-    
-    (- - -  6 - -  3 7 -)
-    (7 5 -  - - 4  - - -)
-    (- 2 -  - - -  5 8 4)))
-
-(defparameter *board2*
-  '((- - 5  - 2 3  4 - -)
-    (2 3 -  4 - -  - - -)
-    (- 1 -  - - 5  - 6 -)
-    
-    (- - -  - - 9  - - 8)
-    (9 2 -  - - -  - - 1)
-    (- 7 -  - 8 -  - - -)
-
-    (5 - -  - - -  3 4 -)
-    (6 - -  5 - -  - 9 -)
-    (3 - -  1 4 2  - - -)))
-
-; pg 74 bbos2
-(defparameter *board3*
-  '((- 9 -  - - 3  - 8 -)
-    (- 6 -  - 5 -  - - -)
-    (5 - -  - - -  - - 6)
-
-    (- - -  - - -  7 4 1)
-    (- - -  - 2 4  - - -)
-    (- - 3  - - 5  - - -)
-
-    (- - 5  - - -  8 - -)
-    (- - -  6 - 9  1 - 7)
-    (7 8 6  - 1 -  9 - -)
-    ))
-
-; pg 75 bbos2
-(defparameter *board4*
-  '((- - -  2 - -  - - -)
-    (- 7 6  - - -  - - 4)
-    (- - -  1 - 8  - 3 -)
-
-    (9 - -  - - -  8 - -)
-    (- - -  - - -  2 6 5)
-    (1 - 3  - - -  7 - -)
-
-    (- - -  3 - -  - 9 6)
-    (- - -  7 4 -  - - -)
-    (2 5 -  - - -  - - -)
-    ))
-
-; pg 77 bbos2
-(defparameter *board5*
-  '((- - -  - - -  - - -)
-    (- - 4  - - -  8 5 -)
-    (8 2 -  3 1 -  - - -)
-
-    (3 - -  7 9 -  2 - -)
-    (4 - 5  - - 3  9 8 -)
-    (- - -  - - 8  - - 7)
-
-    (- 8 2  - - 4  - 6 -)
-    (5 1 -  9 - 2  - - -)
-    (- - -  - 5 -  1 - -)
-    ))
-
-; pg 105 bbos2
-(defparameter *board6*
-  '((1 - 6  9 - 5  - - -)
-    (- - -  - 4 -  - - -)
-    (- - -  2 3 -  6 - 5)
-
-    (- 6 1  5 - -  - 9 -)
-    (5 - -  - - -  7 - -)
-    (9 - -  - - -  5 - 4)
-
-    (- - 8  4 - 9  - - -)
-    (- 7 9  - - -  - 1 -)
-    (- 4 -  - - -  - 8 3)
-    ))
-
-; pg 153 bbos2
-(defparameter *board7*
-  '((- - 8  - - 3  - - -)
-    (9 3 -  - - -  - - 1)
-    (- 7 -  2 - 6  - - 5)
-
-    (3 2 -  - - -  - 1 -)
-    (- - -  3 - -  - 2 -)
-    (- - -  - - -  - 4 9)
-
-    (- - -  7 9 -  - - 6)
-    (- - 9  - 6 8  - - -)
-    (5 - -  - - -  - - -)
-    ))
-
-; Bigissue 
-(defparameter *board8*
-  '((8 4 -  - - -  - - -)
-    (- - 3  - 5 6  - - -)
-    (- 6 -  8 4 -  - - -)
-
-    (- - 9  4 - -  - 2 7)
-    (- - 7  9 3 -  - 5 -)
-    (- - -  - - -  - 8 -)
-
-    (- - 4  3 - 5  9 - -)
-    (- - -  - - -  5 - -)
-    (6 - -  - 2 -  8 7 -)
-    ))
-
-; pg 160 bbos2
-(defparameter *board9*
-  '((7 - 9  - - -  - - 6)
-    (4 2 -  5 - -  - - -)
-    (- - -  4 3 -  - 7 -)
-
-    (- 4 -  6 5 -  7 1 -)
-    (1 - -  2 - -  - 9 -)
-    (2 - 5  - - -  - 6 -)
-
-    (- 6 -  - 7 -  8 - -)
-    (- - 2  - - -  - - -)
-    (- - -  8 - 6  - 3 -)
-    ))
-
-; 350 dumper sudoku
-(defparameter *board10*
-  '((- 9 -  - 3 -  - - -)
-    (- 5 -  2 - 8  - - 3)
-    (4 3 -  - - -  - - -)
-
-    (5 - -  - 2 -  6 - -)
-    (- 1 -  5 9 3  - 7 -)
-    (- - 2  - 8 -  - - 1)
-
-    (- - -  - - -  - 2 7)
-    (3 - -  9 - 2  - 4 -)
-    (- - -  - 5 -  - 3 -)
-    ))
-
-(defparameter *board11*
-  '((- - 7  - - 8  - - 3)
-    (6 2 -  5 - -  - - -)
-    (- 3 -  - 6 -  - - 5)
-
-    (3 - 4  - - 1  - - -)
-    (9 - -  - - -  - - 1)
-    (- - -  7 - -  3 - 6)
-
-    (2 - -  - 3 -  - 8 -)
-    (- - -  - - 4  - 1 9)
-    (1 - -  9 - -  7 - -)
-    ))
-
-(defparameter *board12*
-  '((4 - 7  6 - -  2 - 3)
-    (8 - -  7 2 -  - 5 -)
-    (- - -  - - -  - - -)
-
-    (- - 5  4 - 6  - - -)
-    (- 9 -  - 1 -  - - -)
-    (- - 8  - 3 -  - - 7)
-
-    (1 3 -  - - -  - 4 -)
-    (- - -  - - -  6 - 5)
-    (- - -  - 7 -  - 1 9)
-    ))
-
-;; world's hardest
-;; https://www.telegraph.co.uk/news/science/science-news/9359579/Worlds-hardest-sudoku-can-you-crack-it.html
-(defparameter *board13*
-  '((8 - -  - - -  - - -)
-    (- - 3  6 - -  - - -)
-    (- 7 -  - 9 -  2 - -)
-
-    (- 5 -  - - 7  - - -)
-    (- - -  - 4 5  7 - -)
-    (- - -  1 - -  - 3 -)
-
-    (- - 1  - - -  - 6 8)
-    (- - 8  5 - -  - 1 -)
-    (- 9 -  - - -  4 - -)
-    ))
-(defun make() (ext:saveinitmem "exec" :init-function 'main :executable t :norc t))
 
 ; fun little macro to save typing 'lambda(x)(...)'... just because
 (defmacro lx (&body body) `(lambda(x) (,@body)))
@@ -280,12 +73,8 @@
   (labels ((count-occurences(lst) (count (car lst) (cdr lst))))
     (eq 0 (reduce #'+ (maplist #'count-occurences (remove '- lst))))))
 
-(defun print-grid (grid) 
-  (progn
-    (loop for r from 0 below *dim* do (print (row grid r)))
-    (if (not(valid-board grid)) (prin1 "BOARD FOOKED!"))))
 
-(defun pr-grid(g)
+(defun print-grid(g)
   (loop for r in g for rc below 9 do
         (let ((g1 (slice 0 3 r))
               (g2 (slice 3 3 r))
@@ -295,7 +84,7 @@
 
 (defun overprint-grid(g)
     (format t "~c[11A" #\Escape)
-    (pr-grid g))
+    (print-grid g))
 
 (defun is-finished(grid) (not (find '- (apply #'append grid))))
 
@@ -391,14 +180,11 @@
 
 
 (defun animated-solve(grid)
-  (pr-grid grid)
+  (print-grid grid)
   (let ((solution (solve-deep grid :callback #'overprint-grid)))
     (format t "~%")
     (return-from animated-solve solution)))
 
-
-(defun test-boards()
-  (mapcar (lx solved (solve-deep x)) (list *board1* *board2* *board3* *board4* *board5* *board6* *board7* *board8* *board9* *board10* *board11* *board12* *board13*   )))
 
 ; return combinations of triples from the given list
 (defun combos(lst)
